@@ -3,19 +3,21 @@ import type { CSSResultGroup } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { formatShortDateTimeWithConditionalYear } from "../../common/datetime/format_date_time";
 import { resolveTimeZone } from "../../common/datetime/resolve-time-zone";
 import { fireEvent } from "../../common/dom/fire_event";
 import { computeStateName } from "../../common/entity/compute_state_name";
 import { supportsFeature } from "../../common/entity/supports-feature";
+import { supportsMarkdownHelper } from "../../common/translations/markdown_support";
 import "../../components/ha-alert";
 import "../../components/ha-button";
 import "../../components/ha-checkbox";
 import "../../components/ha-date-input";
+import "../../components/ha-dialog";
 import "../../components/ha-dialog-footer";
 import "../../components/ha-textarea";
 import "../../components/ha-textfield";
 import "../../components/ha-time-input";
-import "../../components/ha-dialog";
 import type { TodoItem } from "../../data/todo";
 import {
   TodoItemStatus,
@@ -28,8 +30,6 @@ import { showConfirmationDialog } from "../../dialogs/generic/show-dialog-box";
 import { haStyleDialog } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import type { TodoItemEditDialogParams } from "./show-dialog-todo-item-editor";
-import { supportsMarkdownHelper } from "../../common/translations/markdown_support";
-import { formatShortDateTimeWithConditionalYear } from "../../common/datetime/format_date_time";
 
 @customElement("dialog-todo-item-editor")
 class DialogTodoItemEditor extends LitElement {
@@ -179,10 +179,10 @@ class DialogTodoItemEditor extends LitElement {
                 .label=${this.hass.localize(
                   "ui.components.todo.item.description"
                 )}
-                .helper=${supportsMarkdownHelper(this.hass.localize)}
+                .hint=${supportsMarkdownHelper(this.hass.localize)}
                 .value=${this._description}
                 @input=${this._handleDescriptionChanged}
-                autogrow
+                resize="auto"
                 .disabled=${!canUpdate}
               ></ha-textarea>`
             : nothing}
