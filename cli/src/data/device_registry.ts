@@ -55,6 +55,6 @@ export function subscribeDeviceRegistry(
 
   return () => {
     active = false;
-    unsub?.();
+    Promise.resolve(unsub?.()).catch(() => {});
   };
 }

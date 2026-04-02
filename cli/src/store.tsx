@@ -29,6 +29,7 @@ import {
 } from "./data/area_registry.js";
 
 export interface HaStore {
+  connection: Connection;
   connected: boolean;
   entities: HassEntities;
   entityRegistry: Record<string, EntityRegistryEntry>;
@@ -131,6 +132,7 @@ export function StoreProvider({ connection, children }: Props) {
     connection.sendMessagePromise(msg as any) as Promise<T>;
 
   const store: HaStore = {
+    connection,
     connected,
     entities,
     entityRegistry,

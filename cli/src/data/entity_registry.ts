@@ -57,6 +57,6 @@ export function subscribeEntityRegistry(
 
   return () => {
     active = false;
-    unsub?.();
+    Promise.resolve(unsub?.()).catch(() => {});
   };
 }

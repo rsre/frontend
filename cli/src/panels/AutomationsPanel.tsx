@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
-import SelectInput from "ink-select-input";
+import { List } from "../components/List.js";
 import { useStore } from "../store.js";
 import { SearchBar } from "../components/SearchBar.js";
 import { useListLimit } from "../hooks/useTerminalHeight.js";
@@ -92,13 +92,11 @@ export function AutomationsPanel() {
         </Text>
       </Box>
 
-      {feedback && (
-        <Box paddingX={1}>
-          <Text color={feedback.startsWith("✓") ? "green" : "red"}>
-            {feedback}
-          </Text>
-        </Box>
-      )}
+      <Box paddingX={1}>
+        <Text color={feedback?.startsWith("✓") ? "green" : "red"}>
+          {feedback ?? ""}
+        </Text>
+      </Box>
 
       {searching && (
         <SearchBar
@@ -123,7 +121,7 @@ export function AutomationsPanel() {
               {"Last triggered"}
             </Text>
           </Box>
-          <SelectInput items={items} limit={limit} onSelect={handleSelect} />
+          <List items={items} limit={limit} onSelect={handleSelect} />
         </Box>
       )}
     </Box>

@@ -6,8 +6,9 @@ export function computeDomain(entityId: string): string {
 
 export function computeEntityName(entity: HassEntity): string {
   return (
-    entity.attributes.friendly_name ??
-    entity.entity_id.split(".")[1].replace(/_/g, " ")
+    (typeof entity.attributes.friendly_name === "string"
+      ? entity.attributes.friendly_name
+      : undefined) ?? entity.entity_id.split(".")[1].replace(/_/g, " ")
   );
 }
 
@@ -25,7 +26,11 @@ export function formatState(entity: HassEntity): string {
     return state === "on" ? "on" : "off";
   }
 
-  if (unit) return `${state} ${unit}`;
+  if (unit) {
+    const num = parseFloat(state);
+    const display = isNaN(num) ? state : String(parseFloat(num.toFixed(1)));
+    return `${display} ${unit}`;
+  }
   return state;
 }
 

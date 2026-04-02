@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Box, Text, useInput } from "ink";
 import Spinner from "ink-spinner";
 import { useStore } from "../store.js";
+import { useListLimit } from "../hooks/useTerminalHeight.js";
 import { computeDomain, domainIcon } from "../utils/state.js";
 
 interface LogbookEntry {
@@ -14,7 +15,7 @@ interface LogbookEntry {
   icon?: string;
 }
 
-const PAGE_SIZE = 40;
+const SCROLL_STEP = 5;
 
 export function LogbookPanel() {
   const { callWS } = useStore();
@@ -22,6 +23,8 @@ export function LogbookPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
+  // StatusBar=3, header=1, footer=1 → overhead=5
+  const pageSize = useListLimit(5);
 
   const fetchLogbook = useCallback(async () => {
     setLoading(true);
@@ -54,16 +57,16 @@ export function LogbookPanel() {
       return;
     }
     if (key.downArrow || input === "j") {
-      setOffset((o) => Math.min(o + 5, Math.max(0, entries.length - PAGE_SIZE)));
+      setOffset((o) => Math.min(o + SCROLL_STEP, Math.max(0, entries.length - pageSize)));
     }
     if (key.upArrow || input === "k") {
-      setOffset((o) => Math.max(0, o - 5));
+      setOffset((o) => Math.max(0, o - SCROLL_STEP));
     }
     if (key.pageDown) {
-      setOffset((o) => Math.min(o + PAGE_SIZE, Math.max(0, entries.length - PAGE_SIZE)));
+      setOffset((o) => Math.min(o + pageSize, Math.max(0, entries.length - pageSize)));
     }
     if (key.pageUp) {
-      setOffset((o) => Math.max(0, o - PAGE_SIZE));
+      setOffset((o) => Math.max(0, o - pageSize));
     }
   });
 
@@ -85,7 +88,7 @@ export function LogbookPanel() {
     );
   }
 
-  const visible = entries.slice(offset, offset + PAGE_SIZE);
+  const visible = entries.slice(offset, offset + pageSize);
 
   return (
     <Box flexDirection="column" flexGrow={1}>
@@ -96,7 +99,7 @@ export function LogbookPanel() {
         </Text>
       </Box>
 
-      <Box flexDirection="column" flexGrow={1} overflowY="hidden">
+      <Box flexDirection="column" flexGrow={1}>
         {visible.length === 0 && (
           <Box padding={1}>
             <Text color="gray">No events in the last 24 hours.</Text>
@@ -128,7 +131,7 @@ export function LogbookPanel() {
 
       <Box paddingX={1}>
         <Text color="gray">
-          {offset + 1}–{Math.min(offset + PAGE_SIZE, entries.length)} of {entries.length}
+          {offset + 1}–{Math.min(offset + pageSize, entries.length)} of {entries.length}
         </Text>
       </Box>
     </Box>

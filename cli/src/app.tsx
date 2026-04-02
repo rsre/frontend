@@ -3,13 +3,14 @@ import { Box, Text, useInput, useApp } from "ink";
 import type { Connection } from "home-assistant-js-websocket";
 import { StoreProvider } from "./store.js";
 import { StatusBar } from "./components/StatusBar.js";
+import { DashboardPanel } from "./panels/DashboardPanel.js";
 import { EntitiesPanel } from "./panels/EntitiesPanel.js";
 import { AutomationsPanel } from "./panels/AutomationsPanel.js";
 import { DevicesPanel } from "./panels/DevicesPanel.js";
 import { LogbookPanel } from "./panels/LogbookPanel.js";
 
-type Panel = "entities" | "automations" | "devices" | "logbook";
-const PANELS: Panel[] = ["entities", "automations", "devices", "logbook"];
+type Panel = "dashboard" | "entities" | "automations" | "devices" | "logbook";
+const PANELS: Panel[] = ["dashboard", "entities", "automations", "devices", "logbook"];
 
 interface Props {
   connection: Connection;
@@ -17,7 +18,7 @@ interface Props {
 
 function AppContent() {
   const { exit } = useApp();
-  const [panel, setPanel] = useState<Panel>("entities");
+  const [panel, setPanel] = useState<Panel>("dashboard");
 
   useInput((input, key) => {
     if (input === "q") {
@@ -33,7 +34,8 @@ function AppContent() {
   return (
     <Box flexDirection="column" height="100%">
       <StatusBar panel={panel} panels={PANELS} />
-      <Box flexGrow={1} flexDirection="column" overflow="hidden">
+      <Box flexGrow={1} flexDirection="column">
+        {panel === "dashboard" && <DashboardPanel />}
         {panel === "entities" && <EntitiesPanel />}
         {panel === "automations" && <AutomationsPanel />}
         {panel === "devices" && <DevicesPanel />}

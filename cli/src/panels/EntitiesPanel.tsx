@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
-import SelectInput from "ink-select-input";
+import { List } from "../components/List.js";
 import { useStore } from "../store.js";
 import { SearchBar } from "../components/SearchBar.js";
 import { useListLimit } from "../hooks/useTerminalHeight.js";
@@ -114,8 +114,8 @@ export function EntitiesPanel() {
         />
       )}
 
-      <Box flexGrow={1} flexDirection="column" overflowY="hidden">
-        <SelectInput
+      <Box flexGrow={1} flexDirection="column">
+        <List
           items={items}
           limit={limit}
           onSelect={(item) => {

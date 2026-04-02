@@ -10,7 +10,7 @@ import {
   stateColor,
 } from "../utils/state.js";
 
-type Mode = "view" | "service";
+type Mode = "view" | "service" | "area";
 
 interface Props {
   entityId: string;
@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function EntityDetailPanel({ entityId, onBack }: Props) {
-  const { entities, services, callService } = useStore();
+  const { entities, services, areas, callService, callWS } = useStore();
   const [mode, setMode] = useState<Mode>("view");
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [serviceData, setServiceData] = useState("");
@@ -28,7 +28,7 @@ export function EntityDetailPanel({ entityId, onBack }: Props) {
 
   useInput((_input, key) => {
     if (key.escape) {
-      if (mode === "service") {
+      if (mode !== "view") {
         setMode("view");
         setSelectedService(null);
         setServiceData("");
@@ -51,6 +51,12 @@ export function EntityDetailPanel({ entityId, onBack }: Props) {
   const name = computeEntityName(entity);
   const color = stateColor(entity);
 
+  const showFeedback = (msg: string) => {
+    setFeedback(msg);
+    setTimeout(() => setFeedback(null), 3000);
+  };
+
+  // ── Service call ──────────────────────────────────────────────────────────
   const domainServices = services[domain]
     ? Object.keys(services[domain]).map((svc) => ({
         label: `${domain}.${svc}`,
@@ -59,6 +65,10 @@ export function EntityDetailPanel({ entityId, onBack }: Props) {
     : [];
 
   const handleServiceSelect = (item: { value: string }) => {
+    if (item.value === "__area__") {
+      setMode("area");
+      return;
+    }
     setSelectedService(item.value);
     setServiceData(JSON.stringify({ entity_id: entityId }));
     setMode("service");
@@ -68,51 +78,69 @@ export function EntityDetailPanel({ entityId, onBack }: Props) {
     if (!selectedService) return;
     try {
       let data: Record<string, unknown> = {};
-      if (serviceData.trim()) {
-        data = JSON.parse(serviceData);
-      }
+      if (serviceData.trim()) data = JSON.parse(serviceData);
       await callService(domain, selectedService, data);
-      setFeedback(`✓ ${domain}.${selectedService} called`);
+      showFeedback(`✓ ${domain}.${selectedService} called`);
       setMode("view");
       setSelectedService(null);
-      setTimeout(() => setFeedback(null), 3000);
     } catch (e) {
-      setFeedback(`✗ Error: ${e instanceof Error ? e.message : String(e)}`);
+      showFeedback(`✗ Error: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 
+  // ── Area change ───────────────────────────────────────────────────────────
+  const areaItems = [
+    { label: "(no area)", value: "" },
+    ...Object.values(areas).map((a) => ({ label: a.name, value: a.area_id })),
+  ];
+
+  const handleAreaSelect = async (item: { value: string }) => {
+    try {
+      await callWS({
+        type: "config/entity_registry/update",
+        entity_id: entityId,
+        area_id: item.value || null,
+      });
+      showFeedback(
+        `✓ Area set to ${item.value ? (areas[item.value]?.name ?? item.value) : "none"}`
+      );
+      setMode("view");
+    } catch (e) {
+      showFeedback(`✗ ${e instanceof Error ? e.message : String(e)}`);
+      setMode("view");
+    }
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
   const attrs = Object.entries(entity.attributes).filter(
     ([k]) => k !== "friendly_name"
   );
+
+  // Action items = area shortcut + domain services
+  const actionItems = [
+    { label: "📍 Change area", value: "__area__" },
+    ...domainServices,
+  ];
 
   return (
     <Box flexDirection="column" flexGrow={1} padding={1}>
       {/* Header */}
       <Box gap={2} marginBottom={1}>
-        <Text bold color="cyan">
-          {name}
-        </Text>
+        <Text bold color="cyan">{name}</Text>
         <Text color="gray">{entityId}</Text>
-        <Text color={color} bold>
-          {formatState(entity)}
-        </Text>
+        <Text color={color} bold>{formatState(entity)}</Text>
       </Box>
 
       {feedback && (
         <Box marginBottom={1}>
-          <Text color={feedback.startsWith("✓") ? "green" : "red"}>
-            {feedback}
-          </Text>
+          <Text color={feedback.startsWith("✓") ? "green" : "red"}>{feedback}</Text>
         </Box>
       )}
 
       {mode === "view" && (
         <>
-          {/* Attributes */}
           <Box flexDirection="column" marginBottom={1}>
-            <Text bold color="blue">
-              Attributes
-            </Text>
+            <Text bold color="blue">Attributes</Text>
             {attrs.length === 0 && <Text color="gray">  (none)</Text>}
             {attrs.map(([k, v]) => (
               <Text key={k}>
@@ -122,32 +150,17 @@ export function EntityDetailPanel({ entityId, onBack }: Props) {
             ))}
           </Box>
 
-          {/* Service picker */}
-          {domainServices.length > 0 && (
-            <Box flexDirection="column">
-              <Text bold color="blue">
-                Call a service (Enter to select, Esc to go back)
-              </Text>
-              <SelectInput
-                items={domainServices}
-                onSelect={handleServiceSelect}
-              />
-            </Box>
-          )}
-          {domainServices.length === 0 && (
-            <Text color="gray">No services available for domain "{domain}".</Text>
-          )}
+          <Box flexDirection="column">
+            <Text bold color="blue">Actions (Enter to select, Esc to go back)</Text>
+            <SelectInput items={actionItems} onSelect={handleServiceSelect} />
+          </Box>
         </>
       )}
 
       {mode === "service" && selectedService && (
         <Box flexDirection="column" gap={1}>
-          <Text bold color="cyan">
-            {domain}.{selectedService}
-          </Text>
-          <Text color="gray">
-            Edit service data JSON, then press Enter to call. Esc to cancel.
-          </Text>
+          <Text bold color="cyan">{domain}.{selectedService}</Text>
+          <Text color="gray">Edit JSON then Enter to call. Esc to cancel.</Text>
           <Box borderStyle="round" borderColor="cyan" paddingX={1}>
             <TextInput
               value={serviceData}
@@ -155,12 +168,16 @@ export function EntityDetailPanel({ entityId, onBack }: Props) {
               onSubmit={handleServiceCall}
             />
           </Box>
-          <Text color="gray">
-            Tip: Use single line JSON like {"{"}"entity_id": "{entityId}"{"}"}
-          </Text>
+        </Box>
+      )}
+
+      {mode === "area" && (
+        <Box flexDirection="column" gap={1}>
+          <Text bold color="cyan">Select area for {name}</Text>
+          <Text color="gray">Esc to cancel.</Text>
+          <SelectInput items={areaItems} onSelect={handleAreaSelect} />
         </Box>
       )}
     </Box>
   );
 }
-

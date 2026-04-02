@@ -45,6 +45,6 @@ export function subscribeAreaRegistry(
 
   return () => {
     active = false;
-    unsub?.();
+    Promise.resolve(unsub?.()).catch(() => {});
   };
 }
