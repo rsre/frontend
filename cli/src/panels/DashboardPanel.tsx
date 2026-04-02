@@ -13,6 +13,7 @@ import {
   type LovelaceDashboard,
 } from "../data/lovelace.js";
 import { EntityDetailPanel } from "./EntityDetailPanel.js";
+import { CardDetailPanel } from "./CardDetailPanel.js";
 
 const WIDGET_W = 38;
 const WIDGET_ROW_H = 4; // every widget renders exactly 4 terminal lines (border×2 + 2 content)
@@ -61,6 +62,7 @@ export function DashboardPanel() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollRow, setScrollRow] = useState(0);
   const [detailEntity, setDetailEntity] = useState<string | null>(null);
+  const [detailCard, setDetailCard] = useState<LovelaceCardConfig | null>(null);
 
   const unsubRef = useRef<(() => void) | null>(null);
 
@@ -157,6 +159,10 @@ export function DashboardPanel() {
       if (key.escape) setDetailEntity(null);
       return;
     }
+    if (detailCard) {
+      if (key.escape) setDetailCard(null);
+      return;
+    }
     if (input === "d") { setShowPicker(true); return; }
     if (input === "r") { loadDashboard(dashboards[dashboardIndex]?.url_path ?? null); return; }
 
@@ -233,13 +239,28 @@ export function DashboardPanel() {
 
     if (key.return) {
       const card = selectableCards[selectedIndex];
-      const entityId = card?.entity as string | undefined;
+      if (!card) return;
+
+      if (card.type === "statistics-graph" || card.type === "history-graph") {
+        setDetailCard(card);
+        return;
+      }
+
+      const entityId =
+        typeof card.entity === "string"
+          ? card.entity
+          : typeof card.cards?.[0]?.entity === "string"
+            ? card.cards[0].entity
+            : undefined;
       if (entityId) setDetailEntity(entityId);
     }
   });
 
   if (detailEntity) {
     return <EntityDetailPanel entityId={detailEntity} onBack={() => setDetailEntity(null)} />;
+  }
+  if (detailCard) {
+    return <CardDetailPanel card={detailCard} onBack={() => setDetailCard(null)} />;
   }
 
   // Dashboard picker overlay

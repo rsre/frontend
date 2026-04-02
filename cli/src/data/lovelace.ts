@@ -11,6 +11,7 @@ export interface LovelaceCardConfig {
   name?: string;
   heading?: string;
   icon?: string;
+  cards?: LovelaceCardConfig[]; // vertical-stack, horizontal-stack, grid
   [key: string]: unknown;
 }
 
